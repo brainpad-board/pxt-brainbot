@@ -223,7 +223,7 @@ namespace brainbot {
 	//% color.defl=255
     export function TaillightColor(direction: TurnDirection, color: number): void {
 		let strip: neopixel.Strip = null
-		strip = neopixel.create(pins.P12, 2)
+        strip = neopixel.create(DigitalPin.P12, 2, NeoPixelMode.RGB)
 		
 		if (direction == TurnDirection.Left)		
 			taillightLeftcolor = color;		
@@ -277,14 +277,12 @@ namespace brainbot {
 	
 	let groundSensorValue:number
     let groundSensorScanIdx:number = 1;
-    function patorlState():number{
+    function GetGroundSensorState():number{
         switch(groundSensorScanIdx){
-            case 1: groundSensorValue = pins.P13.digitalRead() == 0 ? state.state1:0;break;            
-			case 2: groundSensorValue = pins.P13.digitalRead() == 1 ? state.state2:0;break;            
-            case 3: groundSensorValue = pins.P14.digitalRead() == 0 ? state.state3:0;break;   
-			case 4: groundSensorValue = pins.P14.digitalRead() == 1 ? state.state4:0;break;   
-			// case 5: groundSensorValue = (pins.P13.digitalRead() == 0 && pins.P14.digitalRead() == 0) ? state.state5:0;break;            
-			// case 6: groundSensorValue = (pins.P13.digitalRead() == 1 && pins.P14.digitalRead() == 1) ? state.state6:0;break;            
+            case 1: groundSensorValue = pins.digitalReadPin(DigitalPin.P13) == 0 ? state.state1:0;break;
+            case 2: groundSensorValue = pins.digitalReadPin(DigitalPin.P13)== 1 ? state.state2:0;break;
+            case 3: groundSensorValue = pins.digitalReadPin(DigitalPin.P14) == 0 ? state.state3:0;break;
+            case 4: groundSensorValue = pins.digitalReadPin(DigitalPin.P14) == 1 ? state.state4:0;break;			
               		
         }
         groundSensorScanIdx+=1;
@@ -295,7 +293,7 @@ namespace brainbot {
 	
 	forever(() => {
         if (groundSensorCallback != null) {
-            let sta = patorlState();
+            let sta = GetGroundSensorState();
             if (sta != 0) {
                 for (let item of groundSensorCallback) {
                     if (item._key == sta) {
@@ -304,7 +302,7 @@ namespace brainbot {
                 }
             }
         }
-        pause(40);
+        pause(25);
     })
 		
 	/**
@@ -316,16 +314,16 @@ namespace brainbot {
     export function ReadGroundSensor(detect: GroundSensorDetected): boolean {
         switch (detect) {
 			case GroundSensorDetected.None:
-				return pins.P13.digitalRead() == 0 && pins.P14.digitalRead() == 0
+                return pins.digitalReadPin(DigitalPin.P13) == 0 && pins.digitalReadPin(DigitalPin.P14) == 0
 				
 			case GroundSensorDetected.Right:
-				return pins.P14.digitalRead() > 0 && pins.P13.digitalRead() == 0
+                return pins.digitalReadPin(DigitalPin.P14) > 0 && pins.digitalReadPin(DigitalPin.P13) == 0
 				
 			case GroundSensorDetected.Left:
-				return pins.P13.digitalRead() > 0 && pins.P14.digitalRead() == 0
+                return pins.digitalReadPin(DigitalPin.P13) > 0 && pins.digitalReadPin(DigitalPin.P14) == 0
 				
 			case GroundSensorDetected.Both:
-				return pins.P13.digitalRead() > 0 && pins.P14.digitalRead() > 0
+                return pins.digitalReadPin(DigitalPin.P13) > 0 && pins.digitalReadPin(DigitalPin.P14) > 0
 				
 		}
 		
@@ -337,38 +335,13 @@ namespace brainbot {
 	//% group="Sensors"
     export function ReadDistanceSensor(): number {
         let distance = sonar.ping(
-							pins.P16,
-							pins.P15,
+            DigitalPin.P16,
+            DigitalPin.P15,
 							PingUnit.Centimeters
 							) ;
 		return distance;
     } 
 	
-	//% blockId=brainbot_read_infrared block="read last infrared key"
-	//% group="Reciever"
-	//% weight=99
-	export function ReadLastKey(): number {		
-		if (init_ir == false) {
-			infrared.init(Pins.P8)
-			
-			init_ir = true
-		}
-		
-		return infrared.readkey(Pins.P8)
-	}
-	
-	//% blockId=brainbot_clear_infrared block="clear last infrared key"
-	//% group="Reciever"
-	//% weight=98
-	export function ClearLastKey(): void {		
-		if (init_ir == false) {
-			infrared.init(Pins.P8)
-			
-			init_ir = true
-		}
-		
-		infrared.clearkey(Pins.P8)
-	}
 	
 	/**
 	* button pushed.
@@ -379,12 +352,12 @@ namespace brainbot {
 	//% weight=97
 	export function onPressEvent(btn: RemoteButton, body:Action): void {
 		if (init_ir == false) {
-			infrared.init(Pins.P8)
+            IR.init(Pins.P8)
 			
 			init_ir = true
 		}
 		
-		infrared.onPressEvent(btn, body)
+        IR.onPressEvent(btn, body)
 	}
 
 	
