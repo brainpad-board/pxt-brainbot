@@ -7,7 +7,8 @@
         "microphone": "*",
         "neopixel": "github:Microsoft/pxt-neopixel#v0.7.3",
         "pxt-sonar": "github:Microsoft/pxt-sonar#v0.0.5",
-        "ir": "github:tinkertanker/pxt-ir-receiver#v0.2.1"
+        "ir": "github:tinkertanker/pxt-ir-receiver#v0.2.1",
+        "MakerBit-IR-Receiver": "github:1010technologies/pxt-makerbit-ir-receiver#v1.5.14"
     },
     "files": [
         "main.blocks",

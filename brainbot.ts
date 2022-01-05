@@ -1,16 +1,16 @@
 
-interface IGroundSensorActionVector {
-    _key: state;
-    _action: Action;
+interface IActionVector {
+    _key: state
+    _oldkey: state
+    _action: Action
 }
+
 
 enum state {
 	state1=0x10,
 	state2=0x11,
 	state3=0x20,
-	state4=0x21,
-	state5=0x30,
-	state6=0x31,
+	state4=0x21
 }
 
 enum GroundSensorDetected {
@@ -23,6 +23,30 @@ enum GroundSensorDetected {
 	//% block="left and right"
 	Both =3,
 }
+
+enum IrRemoteButton {
+    PowerOff = 0,
+    Up = 1,
+    PowerOn = 2,
+    Left = 4,
+    Center = 5,
+    Right = 6,
+    Back = 8,
+    Down = 9,
+    Next = 10,
+    Plus = 12,
+    Zero = 13,
+    Minus = 14,
+    One = 16,
+    Two = 17,
+    Three = 18,
+    Four = 20,
+    Five = 21,
+    Six = 22,
+    Seven = 24,
+    Eight = 25,
+    Nine = 26
+};
 
 /**
  * GameBot
@@ -53,7 +77,7 @@ namespace brainbot {
 	}
 
     let init_ir: boolean = false
-	let groundSensorCallback: IGroundSensorActionVector[] = []
+	let groundSensorCallback: IActionVector[] = []
 	
 	let taillightLeftcolor: number;
 	let taillightRightColor: number;
@@ -271,7 +295,7 @@ namespace brainbot {
 	//% group="Sensors"
     export function onGroundSensorEvent(direction: TurnDirection, vi: Voltage, a: Action) {
         let state = direction + vi;
-        let item: IGroundSensorActionVector = { _key: state, _action: a };
+        let item: IActionVector = { _key: state, _oldkey:0, _action: a };
         groundSensorCallback.push(item);
     }
 	
@@ -291,20 +315,7 @@ namespace brainbot {
         return groundSensorValue;
     }
 	
-	forever(() => {
-        if (groundSensorCallback != null) {
-            let sta = GetGroundSensorState();
-            if (sta != 0) {
-                for (let item of groundSensorCallback) {
-                    if (item._key == sta) {
-                        item._action();
-                    }
-                }
-            }
-        }
-        pause(25);
-    })
-		
+	
 	/**
      * Ground sensor detected
     */
@@ -342,7 +353,10 @@ namespace brainbot {
 		return distance;
     } 
 	
-	
+    let irReceived: number   
+    let irKeyCallback: IActionVector[] = []
+    let lastkey: number
+
 	/**
 	* button pushed.
 	*/
@@ -350,15 +364,154 @@ namespace brainbot {
 	//% block="on receiver button |%btn| pressed"
 	//% group="Reciever"
 	//% weight=97
-	export function onPressEvent(btn: RemoteButton, body:Action): void {
+    export function onPressEvent(btn: IrRemoteButton, body:Action): void {
 		if (init_ir == false) {
-            IR.init(Pins.P8)
+            makerbit.connectIrReceiver(DigitalPin.P8, IrProtocol.NEC)
 			
 			init_ir = true
+            irReceived = 0
+
+            makerbit.onIrButton(IrButton.Any, IrButtonAction.Pressed, function () {
+                irReceived=1
+            })
 		}
-		
-        IR.onPressEvent(btn, body)
+
+        let bt = btn as number
+        let item: IActionVector = { _key: bt, _oldkey: bt, _action: body };
+
+        irKeyCallback.push(item)		        
 	}
+
+
+    //% blockId=brainbot_read_infrared block="read last infrared key"
+    //% group="Reciever"
+    //% weight=99
+    export function ReadLastKey(): number {
+        if (init_ir == false) {
+            makerbit.connectIrReceiver(DigitalPin.P8, IrProtocol.NEC)
+
+            init_ir = true
+            irReceived = 0
+
+            makerbit.onIrButton(IrButton.Any, IrButtonAction.Pressed, function () {
+                irReceived = 1
+            })
+        }
+
+        return lastkey;
+    }
+    
+
+    function GetIrKey():number {
+        if (irReceived ==0) {
+            return 100;
+        }
+
+        irReceived = 0 // reset
+
+        let key = makerbit.irButton();
+        let keyConvert = 100;
+
+        switch (key) {
+            case 0: // power on
+                keyConvert = 0;
+                break
+            case 128: // up
+                keyConvert = 1;
+                break
+            case 64: // power off
+                keyConvert = 2;
+                break
+            case 32: // left
+                keyConvert = 2;
+                break
+            case 160: // center
+                keyConvert = 5;
+                break
+            case 96: // right
+                keyConvert = 6;
+                break
+            case 16: // back
+                keyConvert = 8;
+                break
+            case 144: // down
+                keyConvert = 9;
+                break
+            case 80: // next
+                keyConvert = 10;
+                break
+            case 48: // +
+                keyConvert = 12;
+                break
+            case 176: // 0
+                keyConvert = 13;
+                break
+            case 112: // -
+                keyConvert = 14;
+                break
+            case 8: // 1
+                keyConvert = 16;
+                break
+            case 136: // 2
+                keyConvert = 17;
+                break
+            case 72: // 3
+                keyConvert = 18;
+                break
+            case 40: // 4
+                keyConvert = 20;
+                break
+            case 168: // 5
+                keyConvert = 21;
+                break
+            case 104: // 6
+                keyConvert = 22;
+                break
+            case 24: // 7
+                keyConvert = 24;
+                break
+            case 152: // 8
+                keyConvert = 25;
+                break
+            case 88: // 9
+                keyConvert = 26;
+                break
+        }
+
+        lastkey = keyConvert;
+        return keyConvert;
+    }
+
+    forever(() => {
+        if (groundSensorCallback != null) {
+            let sta = GetGroundSensorState();
+            if (sta != 0) {
+                for (let item of groundSensorCallback) {
+                    if (item._key == sta /*&& item._key != item._oldkey*/) {
+                        item._action();
+                    }
+
+                    //if ((item._key && 0x30) == (item._oldkey && 0x30))
+                    //    item._oldkey = item._key
+                }
+            }
+        }
+
+        if (irKeyCallback != null) {
+            let key = GetIrKey();
+
+            if (key != 100) {
+                for (let item of irKeyCallback) {
+                    if (item._key == key) {
+                        item._action();
+                    }
+                }
+            }
+
+
+        }
+        pause(25);
+    })
 
 	
 }
